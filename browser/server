@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 var BufferedNetstringStream = require('./netstring').BufferedNetstringStream;
 var http = require('http');
 var fs = require('fs');
@@ -35,16 +34,21 @@ function serve(res, path, contentType) {
     res.end();
   });
 }
-
+var depthData;
 function writeImage(image) {
+  if ( !global.socket )
+    return;
+
   var uri = 'data:image/png;base64,' + image.toString('base64');
+  depthData = uri;
+  // clients.forEach(function(client) {
+  //   client.write('id: ' + id + '\n');
+  //   client.write('data: ' + uri + '\n\n');
+  // });
 
-  clients.forEach(function(client) {
-    client.write('id: ' + id + '\n');
-    client.write('data: ' + uri + '\n\n');
-  });
+  // id++;
 
-  id++;
+  global.socket.emit('ready',{data:depthData});
 }
 
 var server = http.createServer(function(req, res) {
@@ -60,3 +64,18 @@ var server = http.createServer(function(req, res) {
 process.stdin.resume();
 process.stdin.pipe(new BufferedNetstringStream).on('data', writeImage);
 server.listen(5600);
+
+var io = require('socket.io').listen(4040, { log: false });
+
+var socket;
+var pushDataFunc = function() {
+  socket.emit('ready',{data:depthData});
+};
+
+io.sockets.on('connection', function(socket) {
+    console.log("- on connection");
+    // console.log(socket);
+    global.socket = socket;
+
+    // setInterval(pushDataFunc,1000/30);
+});

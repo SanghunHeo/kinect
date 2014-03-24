@@ -3,7 +3,9 @@
 
 void write_depth_png_netstring(FILE *file) {
   Buffer *buffer = Buffer_create();
-  Image *image = Image_create(320, 240);
+  // Image *image = Image_create(320, 240);
+  // Image *image = Image_create(1024, 768);
+  Image *image = Image_create(640, 480);
 
   Image_downsample(kinect_depth_image, image);
 
