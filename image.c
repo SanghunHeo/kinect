@@ -103,6 +103,7 @@ char Image_get_png(Image *img, Buffer *buffer) {
 }
 
 char Image_downsample(Image *src, Image *dst) {
+#ifdef DOWNSAMPLING_ONLY
   if (dst->width > src->width) return 0;
   if (dst->height > src->height) return 0;
 
@@ -126,6 +127,39 @@ char Image_downsample(Image *src, Image *dst) {
       }
     }
   }
+#else
+  unsigned int temp;
+  int srcx, srcy;
+  int x, y, xi, yi;
+  float w_ratio = (float)src->width / (float)dst->width;
+  float h_ratio = (float)src->height / (float)dst->height;
+  int w_ratio_i = floor(w_ratio);
+  int h_ratio_i = floor(h_ratio);
+
+  float wxh = w_ratio * h_ratio;
+
+  for (y = 0; y < dst->height ; y++)
+  for (x = 0; x < dst->width  ; x++){
+    temp = 0;
+
+    // we have to use here the floating point value w_ratio, h_ratio
+    // otherwise towards the end it can get a little wrong
+    // this multiplication can be optimized similarly to Bresenham's line
+    srcx = floor((float)x * w_ratio);
+    srcy = floor((float)y * h_ratio);
+
+    // here we use floored value otherwise it might overflow src bitmap
+    if ( w_ratio_i == 0 || h_ratio_i == 0 )
+      temp = Image_get_pixel( src, srcx, srcy );
+    else {
+      for(yi = 0; yi < h_ratio_i; yi++)
+      for(xi = 0; xi < w_ratio_i; xi++)
+          temp += Image_get_pixel( src, srcx + xi, srcy + yi );
+    }
+
+    Image_set_pixel( dst, x, y, (Pixel)(temp / wxh) );
+  }
+#endif
 
   return 1;
 }
